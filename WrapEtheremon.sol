@@ -1,106 +1,114 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./KyberNetworkProxy.sol";
 import "./EtheremonExternalPayment.sol";
 
 contract WrapEtheremon is BasicAccessControl, Utils2 {
-    KyberNetworkProxyInterface public kyber;
-    EtheremonExternalPayment public etheremon;
-    ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
+  event SwapTokenChange(uint balanceBefore, uint balanceAfter, uint change);
+  event EtherChange(address indexed sender, uint amount);
 
-    /// @dev Contract contstructor
-    /// @param KyberNetworkProxy contract address
-    /// @param EtheremonExternalPayment contract address
-    constructor (address _kyberAddress,address _etheremonExternalPaymentAddress) {
-      kyber = KyberNetworkProxyInterface(_kyberAddress);
-      etheremon = EtheremonExternalPayment(_etheremonExternalPaymentAddress);
-    }
+  address public walletId = address(0x0);
+  ERC20 constant internal ETH_TOKEN_ADDRESS = ERC20(0x00eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee);
 
-    /// @notice Can only be called by whitelisted moderators
-    /// @dev Sets the KyberNetworkProxy address
-    /// @param KyberNetwork contract address
-    function setKyberAddress(address _kyberAddress) onlyModerators {
-      kyber = KyberNetworkProxyInterface(_kyberAddress);
-    }
+  /// @dev Contract contstructor
+  constructor () public { }
 
-    /// @notice Can only be called by whitelisted moderators
-    /// @dev sets the EtheremonExternalPayment address
-    /// @param EtheremonExternalPayment contract address
-    function setEtheremonAddress(address _etheremonExternalPaymentAddress) onlyModerators {
-        etheremon = EtheremonExternalPayment(_etheremonExternalPaymentAddress);
-    }
+  /// @dev Return the ETH to user that was taken back by the network
+  function() public payable {
+    msg.sender.transfer(msg.value);
+    emit EtherChange(msg.sender, msg.value);
+  }
 
-    /// @dev Gets the equivalent token price of the Etheremon monster
-    /// @param ERC20 token address
-    /// @param classId of the monaster
-    /// @return expectedRate, slippageRate, tokenAmount
-    function getTokenPrice(
-      ERC20 token,
-      uint32 _classId
-    )
-      public
-      constant
-      returns (
-        uint expectedRate,
-        uint slippageRate,
-        uint tokenAmount
-      ) {
-      bool catchable;
-      uint ethValue;
+  /// @dev Set Etheremon's referral wallet ID where referral fees will be sent to
+  /// @param _walletId Wallet ID of Etheremon
+  function setWalletId(address _walletId) public onlyModerators {
+    walletId = _walletId;
+  }
 
-      (catchable, ethValue) = etheremon.getPrice(_classId);
-      (expectedRate, slippageRate) = kyber.getExpectedRate(ETH_TOKEN_ADDRESS, token, ethValue);
-      tokenAmount = calcDestAmount(ETH_TOKEN_ADDRESS, token,ethValue, expectedRate);
-    }
+  /// @dev Get the token price equivalent of the Etheremon monster
+  /// @param _kyberAddress KyberNetworkProxyInterface address
+  /// @param _etheremonAddress EtheremonExternalPayment address
+  /// @param token ERC20 token address
+  /// @param _classId Class ID of monster
+  /// @return expectedRate, slippageRate, tokenPrice
+  function getMonsterPriceInTokens(
+    KyberNetworkProxyInterface _kyberAddress,
+    EtheremonExternalPayment _etheremonAddress,
+    ERC20 token,
+    uint32 _classId
+  )
+    public
+    view
+    returns (
+      uint expectedRate,
+      uint slippageRate,
+      uint tokenPrice
+    ) {
+    bool catchable;
+    uint ethValue;
 
-    event SwapTokenChange(uint balanceBefore, uint balanceAfter, uint change);
+    (catchable, ethValue) = _etheremonAddress.getPrice(_classId);
+    (expectedRate, slippageRate) = _kyberAddress.getExpectedRate(ETH_TOKEN_ADDRESS, token, ethValue);
+    tokenPrice = calcDestAmount(ETH_TOKEN_ADDRESS, token, ethValue, expectedRate);
+  }
 
-    /// @dev Acquires the monster from Etheremon
-    /// @param address of the user/player
-    /// @param classId of the monster
-    /// @param custom name of the monster
-    /// @param ERC20 token address
-    /// @param amount of ERC20 tokens to acquire the monster
-    /// @param limit on the amount of ETH to pay to Etheremon contracts
-    /// @param minimum converstion rate from ERC20 token to ETH
-    /// @param referral wallet address of Etheremon to receive part of the fees
-    /// @return expectedRate, slippageRate, tokenAmount
-    function catchMonster(
-      address _player,
-      uint32 _classId,
-      string _name,
-      ERC20 token,
-      uint tokenQty,
-      uint maxDestQty,
-      uint minRate,
-      address walletId
-    )
-      public
-      payable
-      returns (
-        uint tokenId
-      ) {
-      // Get the starting token balance of the players wallet
-      uint startTokenBalance = token.balanceOf(this);
+  /// @dev Acquires the monster from Etheremon
+  /// @param _kyberAddress KyberNetworkProxyInterface address
+  /// @param _etheremonAddress EtheremonExternalPayment address
+  /// @param _player Address of the player
+  /// @param _classId Class ID of monster
+  /// @param _name Name of the monster
+  /// @param token ERC20 token address
+  /// @param tokenQty Amount of tokens required to acquire the monster
+  /// @param maxDestQty Limit on the amount of destination tokens
+  /// @param minRate Minimum conversion rate
+  /// @return monsterId
+  function catchMonster(
+    KyberNetworkProxyInterface _kyberAddress,
+    EtheremonExternalPayment _etheremonAddress,
+    address _player,
+    uint32 _classId,
+    string _name,
+    ERC20 token,
+    uint tokenQty,
+    uint maxDestQty,
+    uint minRate
+  )
+    public
+    returns (
+      uint monsterId
+    ) {
+    uint tokenPrice;
 
-      // Check that the player/user has transferred the token to this contract,
-      // then approve the Kyber contract to trade this token
-      require(token.transferFrom(_player, this, tokenQty));
-      token.approve(address(kyber), tokenQty);
+    // Get the starting token balance of the players wallet
+    uint startTokenBalance = token.balanceOf(this);
 
-      // Calculate the ETH amount to send to Etheremon payments contract
-      uint destAmount = kyber.tradeWithHint(token, tokenQty, ETH_TOKEN_ADDRESS, address(this), maxDestQty, minRate, walletId, "");
+    // Check that the player has transferred the token to this contract,
+    // then approve the Kyber contract to trade this token
+    require(token.transferFrom(_player, this, tokenQty));
+    token.approve(address(_kyberAddress), tokenQty);
 
-      // Acquire the monster and send to player/user
-      etheremon.catchMonster.value(destAmount)(_player, _classId, _name);
+    // Get the current price of the monster
+    (,tokenPrice) = getTokenPrice(_kyberAddress, _etheremonAddress, token, _classId);
 
-      // Calculate change of user
-      uint change = token.balanceOf(this) - startTokenBalance;
+    // Swap player's token to ETH to send to Etheremon payments contract
+    uint destAmount = _kyberAddress.tradeWithHint(token, tokenQty, ETH_TOKEN_ADDRESS, address(this), maxDestQty, minRate, walletId, "");
 
-      // Log the exchange event
-      emit SwapTokenChange(startTokenBalance, token.balanceOf(this), change);
+    // Check that destAmount >= tokenPrice
+    require(destAmount >= tokenPrice);
 
-      // Transfer change back to user
-      token.transfer(_player, change);
-    }
+    // Acquire the monster and send to player
+    monsterId = _etheremonAddress.catchMonster.value(destAmount)(_player, _classId, _name);
+
+    // Calculate change of player
+    uint change = token.balanceOf(this) - startTokenBalance;
+
+    // Log the exchange event
+    emit SwapTokenChange(startTokenBalance, token.balanceOf(this), change);
+
+    // Transfer change back to player
+    token.transfer(_player, change);
+
+    return monsterId;
+  }
 }
