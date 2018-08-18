@@ -1,6 +1,5 @@
 pragma solidity ^0.4.24;
 
-
 contract WrapEtheremonPermissions {
     event TransferAdmin(address newAdmin);
     event OperatorAdded(address newOperator, bool isAdd);

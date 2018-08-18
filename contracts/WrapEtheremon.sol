@@ -2,7 +2,7 @@ pragma solidity ^0.4.24;
 
 import "./WrapEtheremonInterface.sol";
 import "./WrapEtheremonPermissions.sol";
-import "./Utils2.sol";
+import "./kyberContracts/Utils2.sol";
 
 contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Utils2 {
     event SwapTokenChange(uint startTokenBalance, uint change);
@@ -20,7 +20,7 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
 
     /// @dev Return the ETH to user that was taken back by the network
     function() public payable {
-        // Only receive ETH from KyberNetwork contract
+        // Only receive ETH from KyberNetwork main contract
         require(msg.sender == KyberNetwork);
         emit ETHReceived(msg.sender, msg.value);
     }

@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import "./ERC20Interface.sol";
-import "./KyberNetworkProxyInterface.sol";
-import "./EtheremonExternalPayment.sol";
+import "./kyberContracts/ERC20Interface.sol";
+import "./kyberContracts/KyberNetworkProxyInterface.sol";
+import "./etheremonContracts/EtheremonExternalPayment.sol";
 
 /// @title WrapEtheremon Interface
 interface WrapEtheremonInterface {

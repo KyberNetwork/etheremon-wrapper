@@ -164,15 +164,18 @@ contract EtheremonExternalPayment is EtheremonEnum, BasicAccessControl {
     // public
 
     function getPrice(uint32 _classId) constant external returns(bool catchable, uint price) {
-        EtheremonDataBase data = EtheremonDataBase(dataContract);
-        MonsterClassAcc memory class;
-        (class.classId, class.price, class.returnPrice, class.total, class.catchable) = data.getMonsterClass(_classId);
+        if (_classId == 1) {
+            price = 131300000000000000;
+            catchable = true;
+        } else if (_classId == 2) {
+            price = 100000000000000000;
+            catchable = false;
+        } else if (_classId == 3) {
+            price = 31590000000000000;
+            catchable = true;
+        }
 
-        price = class.price;
-        if (class.total > 0)
-            price += class.price*(class.total-1)/priceIncreasingRatio;
-
-        return (class.catchable, price);
+        return (catchable, price);
     }
 
 
