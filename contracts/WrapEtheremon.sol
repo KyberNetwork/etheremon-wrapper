@@ -4,6 +4,7 @@ import "./WrapEtheremonInterface.sol";
 import "./WrapEtheremonPermissions.sol";
 import "./kyberContracts/Utils2.sol";
 
+
 contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Utils2 {
     event SwapTokenChange(uint startTokenBalance, uint change);
     event CaughtWithToken(address indexed sender, uint monsterId, ERC20 token, uint amount);
@@ -33,12 +34,14 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
     }
 
     /// @dev Get the ETH price of the Etheremon monster and if it is catchable
-    /// @param _etheremon EtheremonExternalPayment address
+    /// @param _etheremon EtheremonWorldNFT address
     /// @param _classId Class ID of monster
+    /// @param _payPrice Price of monster passed from Etheremon server
     /// @return catchable, monsterInETH
     function getMonsterPriceInETH(
-        EtheremonExternalPayment _etheremon,
-        uint32 _classId
+        EtheremonWorldNFT _etheremon,
+        uint32 _classId,
+        uint _payPrice
     )
         public
         view
@@ -49,6 +52,9 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
     {
         // Get monster details from Etheremon contract
         (catchable, monsterInETH) = _etheremon.getPrice(_classId);
+
+        // Get the highest price from contract pricing or offchain pricing
+        monsterInETH = max(monsterInETH, _payPrice);
 
         return (catchable, monsterInETH);
     }
@@ -103,7 +109,7 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
 
     /// @dev Acquires the monster from Etheremon using tokens
     /// @param _kyberProxy KyberNetworkProxyInterface address
-    /// @param _etheremon EtheremonExternalPayment address
+    /// @param _etheremon EtheremonWorldNFT address
     /// @param _classId Class ID of monster
     /// @param _name Name of the monster
     /// @param token ERC20 token address
@@ -114,7 +120,7 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
     /// @return monsterId
     function catchMonster(
         KyberNetworkProxyInterface _kyberProxy,
-        EtheremonExternalPayment _etheremon,
+        EtheremonWorldNFT _etheremon,
         uint32 _classId,
         string _name,
         ERC20 token,
@@ -126,8 +132,6 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
         public
         returns (uint monsterId)
     {
-        uint monsterInETH = catchVerify(_kyberProxy, _etheremon, _classId, token, tokenQty);
-
         // Check that the player has transferred the token to this contract
         require(token.transferFrom(msg.sender, this, tokenQty));
 
@@ -145,10 +149,16 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
         require(token.approve(_kyberProxy, tokenQty));
 
         // Swap player's token to ETH to send to Etheremon payments contract
-        uint userETH = _kyberProxy.tradeWithHint(token, tokenQty, ETH_TOKEN_ADDRESS, address(this), maxDestQty, minRate, walletId, "");
-
-        // Check that the use's ETH >= monsterInETH
-        require(userETH >= monsterInETH);
+        uint userETH = _kyberProxy.tradeWithHint(
+            token,
+            tokenQty,
+            ETH_TOKEN_ADDRESS,
+            address(this),
+            maxDestQty,
+            minRate,
+            walletId,
+            ""
+        );
 
         // Acquire the monster and send to player
         monsterId = _etheremon.catchMonster.value(userETH)(msg.sender, _classId, _name);
@@ -160,46 +170,6 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
         calcPlayerChange(token, startTokenBalance);
 
         return monsterId;
-    }
-
-    /// @dev Verifies that monster catching is possible
-    /// @param _kyberProxy KyberNetworkProxyInterface address
-    /// @param _etheremon EtheremonExternalPayment address
-    /// @param _classId Class ID of monster
-    /// @param token ERC20 token address
-    /// @param tokenQty Amount of tokens required to acquire the monster
-    /// @return monsterInETH
-    function catchVerify(
-        KyberNetworkProxyInterface _kyberProxy,
-        EtheremonExternalPayment _etheremon,
-        uint32 _classId,
-        ERC20 token,
-        uint tokenQty
-    )
-        private
-        view
-        returns (uint monsterInETH)
-    {
-        bool catchable;
-        uint monsterInTokens;
-        uint expectedRate;
-
-        // Get monster catchable status and price in ETH
-        (catchable, monsterInETH) = getMonsterPriceInETH(_etheremon, _classId);
-
-        // Check first that the monster is catchable
-        require(catchable);
-
-        // Get monster expected rate
-        (expectedRate,) = getMonsterRates(_kyberProxy, token, monsterInETH);
-
-        // Get the current price of the monster in ETH and tokens, and if it is catchable
-        monsterInTokens = getMonsterPriceInTokens(token, expectedRate, monsterInETH);
-
-        // Check that the token payment tokenQty >= price of monster intokens
-        require(tokenQty >= monsterInTokens);
-
-        return monsterInETH;
     }
 
     /// @dev Calculates token change and returns to player
@@ -217,5 +187,13 @@ contract WrapEtheremon is WrapEtheremonInterface, WrapEtheremonPermissions, Util
             // Transfer change back to player
             token.transfer(msg.sender, change);
         }
+    }
+
+    /// @dev Gets the max between two uint params
+    /// @param a Param A
+    /// @param b Param B
+    /// @return result
+    function max(uint a, uint b) private pure returns (uint result) {
+        return a > b ? a : b;
     }
 }

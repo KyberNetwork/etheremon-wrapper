@@ -1,0 +1,50 @@
+{
+  "ETH_ADDRESS": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  "walletID": "0x0000000000000000000000000000000000000000",
+  "monsterIDs": [100, 101, 102],
+  "monsterRates": [30750000000000000, 41150000000000000, 56000000000000000],
+  "numTokens": 2,
+  "kncRates": {
+    "buy": 549000000000000000000,
+    "sell": 1813123931381047
+  },
+  "TestToken": {
+    "minimalRecordResolution" : "1000000000000000",
+    "maxPerBlockImbalance" : "100000000000000000000000",
+    "maxTotalImbalance" : "57896044618658097711785492504343953926634992332820282019728792003956564819968"
+  },
+  "KyberNetwork": {
+    "maxGasPrice": 50000000000,
+    "negDiffInBPS": 20
+  },
+  "FeeBurner": {
+    "reserveFees": 25,
+    "kncRate": 500,
+    "taxFeesBPS": 2000
+  },
+  "ExpectedRate": {
+    "minExpectedRateSlippage": 50,
+    "quantityFactor": 1
+  },
+  "SanityRates": {
+    "reasonableDiffs": [1000,1000,1000],
+    "sanityRates": [17321646037735852, 2073480000000000, 1840144285714286]
+  },
+  "WhiteList": {
+    "sgdToETHRate": 1984126984126984,
+    "defaultCategory": 0,
+    "defaultCap": 10000
+  },
+  "ConversionRates": {
+    "validDurationBlock": 1000000000,
+    "bytes14": ["0x0000000000000000000000000000", "0x0000000000000000000000000000", "0x0000000000000000000000000000"],
+    "baseBuy": ["61079439106994400000", "493855315770000000000", "549000000000000000000"],
+    "baseSell": ["16400993988000000","1999052700000000","1813123931381047"]
+  },
+  "feeSharingWallets": {
+    "etheremon": {
+      "wallet": "accounts[7]",
+      "fees": 4000
+    }
+  }
+}

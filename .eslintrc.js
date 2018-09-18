@@ -29,6 +29,12 @@ module.exports = {
     'no-underscore-dangle': ['error', {
       allow: ['_parent']
     }],
-    'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0
+    'no-debugger': process.env.NODE_ENV === 'production' ? 2 : 0,
+    'no-eval': 0,
+    'no-throw-literal': 0,
+    'prefer-destructuring': ['error', {
+      'array': false,
+      'object': true
+    }]
   }
 }

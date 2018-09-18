@@ -2,7 +2,8 @@ pragma solidity ^0.4.24;
 
 import "./kyberContracts/ERC20Interface.sol";
 import "./kyberContracts/KyberNetworkProxyInterface.sol";
-import "./etheremonContracts/EtheremonExternalPayment.sol";
+import "./etheremonContracts/EtheremonWorldNFT.sol";
+
 
 /// @title WrapEtheremon Interface
 interface WrapEtheremonInterface {
@@ -12,12 +13,14 @@ interface WrapEtheremonInterface {
     function setKyberNetwork(address _KyberNetwork) public;
 
     /// @dev Get the ETH price of the Etheremon monster and if it is catchable
-    /// @param _etheremon EtheremonExternalPayment address
+    /// @param _etheremon EtheremonWorldNFT address
     /// @param _classId Class ID of monster
+    /// @param _payPrice Price of monster passed from Etheremon server
     /// @return catchable, monsterInETH
     function getMonsterPriceInETH(
-        EtheremonExternalPayment _etheremon,
-        uint32 _classId
+        EtheremonWorldNFT _etheremon,
+        uint32 _classId,
+        uint _payPrice
     )
         public
         view
@@ -57,28 +60,28 @@ interface WrapEtheremonInterface {
         view
         returns (uint monsterInTokens);
 
-        /// @dev Acquires the monster from Etheremon using tokens
-        /// @param _kyberProxy KyberNetworkProxyInterface address
-        /// @param _etheremon EtheremonExternalPayment address
-        /// @param _classId Class ID of monster
-        /// @param _name Name of the monster
-        /// @param token ERC20 token address
-        /// @param tokenQty Amount of tokens to be transferred by user
-        /// @param maxDestQty Actual amount of ETH needed to purchase the monster
-        /// @param minRate The minimum rate or slippage rate.
-        /// @param walletId Wallet ID where Kyber referral fees will be sent to
-        /// @return monsterId
-        function catchMonster(
-            KyberNetworkProxyInterface _kyberProxy,
-            EtheremonExternalPayment _etheremon,
-            uint32 _classId,
-            string _name,
-            ERC20 token,
-            uint tokenQty,
-            uint maxDestQty,
-            uint minRate,
-            address walletId
-        )
-            public
-            returns (uint monsterId);
+    /// @dev Acquires the monster from Etheremon using tokens
+    /// @param _kyberProxy KyberNetworkProxyInterface address
+    /// @param _etheremon EtheremonWorldNFT address
+    /// @param _classId Class ID of monster
+    /// @param _name Name of the monster
+    /// @param token ERC20 token address
+    /// @param tokenQty Amount of tokens to be transferred by user
+    /// @param maxDestQty Actual amount of ETH needed to purchase the monster
+    /// @param minRate The minimum rate or slippage rate.
+    /// @param walletId Wallet ID where Kyber referral fees will be sent to
+    /// @return monsterId
+    function catchMonster(
+        KyberNetworkProxyInterface _kyberProxy,
+        EtheremonWorldNFT _etheremon,
+        uint32 _classId,
+        string _name,
+        ERC20 token,
+        uint tokenQty,
+        uint maxDestQty,
+        uint minRate,
+        address walletId
+    )
+        public
+        returns (uint monsterId);
 }

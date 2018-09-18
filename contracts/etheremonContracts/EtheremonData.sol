@@ -2,6 +2,10 @@ pragma solidity ^0.4.16;
 
 // copyright contact@Etheremon.com
 
+import "./BasicAccessControl.sol";
+import "./EtheremonEnum.sol";
+
+
 contract SafeMath {
 
     /* function assert(bool assertion) internal { */
@@ -28,91 +32,6 @@ contract SafeMath {
       return z;
     }
 
-}
-
-contract BasicAccessControl {
-    address public owner;
-    address[] public moderators;
-
-    function BasicAccessControl() public {
-        owner = msg.sender;
-    }
-
-    modifier onlyOwner {
-        require(msg.sender == owner);
-        _;
-    }
-
-    modifier onlyModerators() {
-        if (msg.sender != owner) {
-            bool found = false;
-            for (uint index = 0; index < moderators.length; index++) {
-                if (moderators[index] == msg.sender) {
-                    found = true;
-                    break;
-                }
-            }
-            require(found);
-        }
-        _;
-    }
-
-    function ChangeOwner(address _newOwner) onlyOwner public {
-        if (_newOwner != address(0)) {
-            owner = _newOwner;
-        }
-    }
-
-    function Kill() onlyOwner public {
-        selfdestruct(owner);
-    }
-
-    function AddModerator(address _newModerator) onlyOwner public {
-        if (_newModerator != address(0)) {
-            for (uint index = 0; index < moderators.length; index++) {
-                if (moderators[index] == _newModerator) {
-                    return;
-                }
-            }
-            moderators.push(_newModerator);
-        }
-    }
-
-    function RemoveModerator(address _oldModerator) onlyOwner public {
-        uint foundIndex = 0;
-        for (; foundIndex < moderators.length; foundIndex++) {
-            if (moderators[foundIndex] == _oldModerator) {
-                break;
-            }
-        }
-        if (foundIndex < moderators.length) {
-            moderators[foundIndex] = moderators[moderators.length-1];
-            delete moderators[moderators.length-1];
-            moderators.length--;
-        }
-    }
-}
-
-
-contract EtheremonEnum {
-
-    enum ResultCode {
-        SUCCESS,
-        ERROR_CLASS_NOT_FOUND,
-        ERROR_LOW_BALANCE,
-        ERROR_SEND_FAIL,
-        ERROR_NOT_TRAINER,
-        ERROR_NOT_ENOUGH_MONEY,
-        ERROR_INVALID_AMOUNT
-    }
-
-    enum ArrayType {
-        CLASS_TYPE,
-        STAT_STEP,
-        STAT_START,
-        STAT_BASE,
-        OBJ_SKILL
-    }
 }
 
 contract EtheremonDataBase is EtheremonEnum, BasicAccessControl, SafeMath {
@@ -468,5 +387,4 @@ contract EtheremonData is EtheremonDataBase {
         uint32 currentGap = uint32(safeSubtract(class.total, monster.lastClaimIndex));
         return (safeMult(currentGap, class.returnPrice), safeMult(totalGap, class.returnPrice));
     }
-
 }
